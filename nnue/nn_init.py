@@ -45,12 +45,10 @@ class NeuralNetworkNNUE(torch.nn.Module):
         super().__init__()
         self.layer1 = torch.nn.Linear(128, 256)
         self.layer2 = torch.nn.Linear(256, 32)
-        self.layer3 = torch.nn.Linear(32, 32)
         self.value = torch.nn.Linear(32, 1)
 
     def forward(self, x):
         x = F.relu(self.layer1(x))
         x = F.relu(self.layer2(x))
-        x = F.relu(self.layer3(x))
         value = F.tanh(self.value(x))
         return value

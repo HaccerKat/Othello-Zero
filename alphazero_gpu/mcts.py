@@ -1,8 +1,6 @@
 import torch
 import board_helper as bh
 import time
-import globals
-import math
 
 # Even resnets cannot saturate a mid-tier GPU without inference batching
 def batch_inference(boards, model, num_games):
@@ -25,7 +23,6 @@ def batch_inference(boards, model, num_games):
         boards[i].policy_head = policies[i]
         boards[i].value_head = values[i].item()
     end = time.perf_counter()
-    globals.state['time_eval'] += end - start
 
 def mcts(root, model, debug, mode, num_simulations, exploration_constant):
     batch_inference([root], model, 1)

@@ -2,7 +2,7 @@ import torch
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 def loss_fn(prediction, target):
-    # could play around with the proportions later
+    # could play around with the proportions for policy and value
     policy_loss = torch.sum(-target[0] * torch.nn.functional.log_softmax(prediction[0], dim=1), dim=1).mean()
     value_loss = torch.nn.functional.mse_loss(prediction[1], target[1])
     return policy_loss, value_loss

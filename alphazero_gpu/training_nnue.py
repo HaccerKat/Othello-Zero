@@ -28,7 +28,7 @@ BATCH_SIZE = 64
 train_dataloader = DataLoader(training_data, batch_size=BATCH_SIZE, shuffle=True)
 test_dataloader = DataLoader(test_data, batch_size=BATCH_SIZE, shuffle=True)
 
-learning_rate = 0.002
+learning_rate = 0.0004
 model = NeuralNetworkNNUE()
 loss_fn = torch.nn.MSELoss()
 
@@ -60,17 +60,21 @@ def test_loop(dataloader, model, loss_fn):
     print(f"Avg Loss: {test_loss:>8f} \n")
     return test_loss
 
-patience = 3
+patience = 2
 epochs_without_improvement = 0
 best_val_loss = float("inf")
 epochs = 300
 bestNN = None
 for t in range(epochs):
     print(f"Epoch {t + 1}\n-------------------------------")
+    if t >= 4:
+        learning_rate = min(0.0002, learning_rate)
+    if t >= 8:
+        learning_rate = min(0.0001, learning_rate)
     optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, weight_decay=1e-4, momentum=0.9)
     train_loop(train_dataloader, model, loss_fn, optimizer)
     test_loss = test_loop(test_dataloader, model, loss_fn)
-    torch.save(model.state_dict(), 'models_nnue/model_weights_' + str(t + 1) + '_.pth')
+    torch.save(model.state_dict(), 'models_nnue/model_weights_' + str(t + 1) + '.pth')
     if test_loss < best_val_loss:
         best_val_loss = test_loss
         bestNN = model
@@ -78,7 +82,7 @@ for t in range(epochs):
 
     else:
         epochs_without_improvement += 1
-        if learning_rate > 0.0001:
+        if learning_rate > 0.00005:
             learning_rate /= 2
             model = bestNN
         if epochs_without_improvement >= patience:

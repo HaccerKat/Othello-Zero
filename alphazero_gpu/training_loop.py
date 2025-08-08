@@ -42,11 +42,7 @@ def training_loop(generation, model, device):
     jobs = [(i, model, model, num_simulations, inference_batch_size, exploration_constant_training, 0.5) for i in range(num_games_to_simulate // inference_batch_size)]
 
     print("Generating Games...")
-    if device == "cpu":
-        # games = execute_mp(generate_game, jobs)
-        assert False
-    else:
-        batches = execute_gpu(generate_games, jobs)
+    batches = execute_gpu(generate_games, jobs)
 
     for batch, position_importance, cnt in batches:
         for player_board, opponent_board, policy, value in batch:
@@ -121,10 +117,10 @@ def training_loop(generation, model, device):
         buffer = ConcatDataset([buffer, dataset])
     torch.save(best_nn.state_dict(), 'models/model_weights_' + str(int(generation) + 1) + '.pth')
     torch.cuda.empty_cache()
-    return best_nn, best_policy_loss, best_value_loss, best_test_loss, patience == patience_counter, avg_entropy
+    return best_nn, best_policy_loss, best_value_loss, best_test_loss, avg_entropy
 
 plot_modulo = 1
-def update_elo(generation, device):
+def update_elo(generation):
     control_model = load_model(NeuralNetwork, 'models/model_weights_' + str(generation - plot_modulo) + '.pth')
     experimental_model = load_model(NeuralNetwork, 'models/model_weights_' + str(generation) + '.pth')
     current_game = 0
@@ -140,11 +136,7 @@ def update_elo(generation, device):
     jobs = [(i, control_model, experimental_model, num_simulations, inference_batch_size, exploration_constant_testing) for i in range(num_games_to_simulate // inference_batch_size)]
 
     print("Simulating Games...")
-    if device == "cpu":
-        # games = execute_mp(simulate_game, jobs)
-        pass
-    else:
-        games = execute_gpu(simulate_games, jobs)
+    games = execute_gpu(simulate_games, jobs)
 
     for result_draws, result_control_wins, result_experimental_wins in games:
         draws += result_draws
@@ -214,7 +206,6 @@ def main():
     except FileNotFoundError:
         pass
 
-    PATIENCE_EXCEEDED_COUNTER_LIMIT = 5
     while True:
         start = time.perf_counter()
         print('---------------------------------' + "Training Generation " + str(generation + 1) + '---------------------------------')
@@ -236,13 +227,8 @@ def main():
             num_simulations = 800
             exploration_constant_training = 1.0
 
-        bestNN, policy_loss, value_loss, test_loss, patience_exceeded, avg_entropy = training_loop(generation, model, device)
-        model = bestNN
-        patience_exceeded_counter += patience_exceeded
-        if patience_exceeded_counter >= PATIENCE_EXCEEDED_COUNTER_LIMIT:
-            print('---------------------------------' + "Patience Exceeded Counter Exceeded" + '---------------------------------')
-            patience_exceeded_counter = 0
-
+        best_nn, policy_loss, value_loss, test_loss, avg_entropy = training_loop(generation, model, device)
+        model = best_nn
         generation += 1
         x_general_list.append(generation)
         y_validation_loss_list[0].append(test_loss)
@@ -250,7 +236,7 @@ def main():
         y_validation_loss_list[2].append(value_loss)
         y_entropy_list[0].append(avg_entropy)
         if generation % plot_modulo == 0 and generation > 0:
-            elo_gain = update_elo(generation, device)
+            elo_gain = update_elo(generation)
             elo += elo_gain
             x_elo_list.append(generation)
             y_elo_list[0].append(elo)

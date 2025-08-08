@@ -5,12 +5,9 @@ from board import Board
 from board_helper import horizontal_mirror_image, rot_90_cw
 import time
 import os
-import globals
-import numpy as np
 from multiprocessing_helper import execute_gpu
 import torch
 import torch.multiprocessing as mp
-import matplotlib.pyplot as plt
 
 # multiprocessing simulating games
 def generate_games(parameters):
@@ -74,12 +71,8 @@ def generate_games(parameters):
 
         boards_and_identifier = tmp_boards_and_identifier
         end = time.perf_counter()
-        globals.state['time_eval_2'] += end - start
         move_num += 1
         print("At move number:", move_num)
-        # print("NN Inference Time Only:", globals.state['time_eval'])
-        # print("Full Game Generation Time:", globals.state['time_eval_2'])
-        # print("Just Backpropagation Time:", globals.state['time_eval_3'])
 
     return dataset
 

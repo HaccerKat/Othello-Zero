@@ -154,7 +154,7 @@ int32_t main() {
 
     // with multithreading
     constexpr int num_threads = 16;
-    const int num_games = 500;
+    const int num_games = 100;
     int positions_generated = 0;
     // auto start = std::chrono::steady_clock::now();
     int board_wins = 0, experimental_wins = 0;

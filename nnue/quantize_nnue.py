@@ -22,8 +22,8 @@ open('./models/weights_' + name + '.txt', 'w').close()
 open('./models/biases_' + name + '.txt', 'w').close()
 all_weights = []
 all_biases = []
-for x in range(4):
-    weights = params[('layer' + str(x + 1) if x < 3 else 'value') + '.weight']
+for x in range(3):
+    weights = params[('layer' + str(x + 1) if x < 2 else 'value') + '.weight']
     weights = weights.flatten()
     weights = weights.tolist()
     file1 = open('./models/weights_' + name + '.txt', "a+")
@@ -32,7 +32,7 @@ for x in range(4):
     file1.close()
     all_weights += weights
 
-    biases = params[('layer' + str(x + 1) if x < 3 else 'value') + '.bias']
+    biases = params[('layer' + str(x + 1) if x < 2 else 'value') + '.bias']
     biases = biases.tolist()
     file2 = open('./models/biases_' + name + '.txt', "a+")
     file2.write(" ".join(str(x) for x in biases))
