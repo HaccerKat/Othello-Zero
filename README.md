@@ -8,19 +8,19 @@ This is an Othello AI that learned from tabula rasa (blank state) to superhuman 
 
 ## Elo Performance
 
-![](/home/haccerkat/.config/marktext/images/2025-07-10-19-33-41-generation_75.png)
+<img width="640" height="480" alt="generation_75" src="https://github.com/user-attachments/assets/c6f250b8-b50e-4023-b655-2c959ab60e98" />
 
 At the start of training, the neural network is randomly initialized. For future generations, 512 games are simulated between generation $x$ and generation $x + 3$ ($x + 1$ for $x < 6$). Derived from the [Elo rating system](https://en.wikipedia.org/wiki/Elo_rating_system), an approximate Elo difference between generations is calculated by  $400 \log_{10}\left(\frac{1}{E} - 1\right)$, where $E$ is the expected score of generation $x$. $E < 0.5$ indicates that the Alphazero agent is improving. I set generation as a 0 Elo agent. However, in practice, this agent would likely be negative elo given how poorly it pays. However, by generation 75, it becomes over 2900 Elo points stronger than random play.
 
 ## Entropy
 
-![generation_75 (1).png](/home/haccerkat/Downloads/generation_75%20(1).png)
+<img width="640" height="480" alt="generation_75 (1)" src="https://github.com/user-attachments/assets/7d1c2d98-14df-4247-9b9c-ce515580c2dc" />
 
 This plot shows the average entropy of the policy head during game generation. The average entropy rapidally drops, indicating that it is becoming increasingly confident in choosing strong moves. In later generations, the agent only really searches 1-3 moves it believes are worth a deeper search.
 
 ## Validation Loss
 
-![](/home/haccerkat/.config/marktext/images/2025-07-11-14-29-32-Validation%20Loss.png)
+<img width="640" height="480" alt="Validation Loss" src="https://github.com/user-attachments/assets/fdf4e50e-5629-4f39-8158-751eec8504ab" />
 
 This plot shows the average total validation loss, policy head loss, and value head loss across generations.
 
