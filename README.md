@@ -1,11 +1,5 @@
 # Othello-Zero
 
------------------------------------------------------- WIP ------------------------------------------------------------
-
-Expect full usability by November 2025.
-
-This is an Othello AI that learned from tabula rasa (blank state) to superhuman level through Alphazero methods. The neural network architecture is a modified 20 block ResNet based the Alphago Zero paper. 
-
 ## Elo Performance
 
 <img width="640" height="480" alt="generation_75" src="https://github.com/user-attachments/assets/c6f250b8-b50e-4023-b655-2c959ab60e98" />
