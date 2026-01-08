@@ -24,7 +24,7 @@ To allow usability across a wide audience, this project also involves training a
 
 Open "game" if using Linux or "game.exe" if using Windows.
 
-Ranked 37/591 (top 7%) on Codingame as of July 9, 2025 (Username: HaccerKat):
+Ranked 35/600 (top 6%) on Codingame as of January 8, 2026 (Username: HaccerKat):
 
 https://www.codingame.com/multiplayer/bot-programming/othello-1/leaderboard
 
