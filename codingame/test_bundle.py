@@ -19,18 +19,24 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
 import othello  # noqa: E402
 
 
-def play(binary, bot, rng):
+# Black's only move is h4; if white answers b8, black must pass while white moves twice.
+FORCED_PASS = ("000000..10000000010001010010001.0011011101010111000001110.0000000", "0", ["b8"])
+
+
+def play(binary, bot, rng, start=(othello.START, "0"), script=()):
+    """Play one game; the opponent makes the moves in `script` first, then random ones."""
+    script = [othello.str_to_move(m) for m in script]
     proc = subprocess.Popen([binary], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                             stderr=subprocess.DEVNULL, text=True, bufsize=1)
     send = lambda text: (proc.stdin.write(text + "\n"), proc.stdin.flush())
     send(f"{bot}\n8")
 
-    board, player, first_turn, opponent_moves = othello.START, "0", True, []
+    (board, player), first_turn, opponent_moves = start, True, []
     try:
         while not othello.game_over(board):
             legal = othello.legal_moves(board, player)
             if player != bot:
-                move = rng.choice(legal) if legal else None
+                move = script.pop(0) if script else rng.choice(legal) if legal else None
                 opponent_moves.append(othello.move_to_str(move))
                 board, player = othello.play(board, player, move), othello.other(player)
                 continue
@@ -62,4 +68,8 @@ if __name__ == "__main__":
         bot = "01"[game % 2]
         diff = play(binary, bot, rng)
         print(f"game {game + 1}: bot played {'black' if bot == '0' else 'white'}, disc difference {diff:+d}")
+    board, bot, script = FORCED_PASS
+    for game in range(3):
+        diff = play(binary, bot, rng, (board, bot), script)
+        print(f"forced pass game {game + 1}: disc difference {diff:+d}")
     print("all replies legal")

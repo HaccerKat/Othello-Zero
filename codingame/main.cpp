@@ -41,8 +41,9 @@ int main()
 
             else {
                 for (int i = 0; i < (int)opponent_moves.size(); i += 3) {
+                    // consecutive opponent moves mean we had to pass in between
                     if (i > 0) {
-                        board->advance_move(-1, -1);
+                        board = board->advance_move(-1, -1);
                     }
 
                     int x = opponent_moves[i + 1] - '0' - 1;
