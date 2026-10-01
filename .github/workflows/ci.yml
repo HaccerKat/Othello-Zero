@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  engine:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j
+
+      - name: Engine tests
+        run: ctest --test-dir build --output-on-failure
+
+      - name: CodinGame bundle
+        run: |
+          python3 codingame/build_bundle.py
+          g++ -std=c++20 -O2 build/codingame_bundle.cpp -o build/codingame_bot
+          python3 codingame/test_bundle.py build/codingame_bot 2
