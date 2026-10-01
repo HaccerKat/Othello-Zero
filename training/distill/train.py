@@ -7,6 +7,7 @@ Checkpoints are saved to the output directory after every epoch, plus best.pth.
 """
 
 import argparse
+import copy
 import os
 
 import numpy as np
@@ -96,14 +97,14 @@ for t in range(epochs):
     torch.save(model.state_dict(), os.path.join(args.out, 'model_weights_' + str(t + 1) + '.pth'))
     if test_loss < best_val_loss:
         best_val_loss = test_loss
-        bestNN = model
+        bestNN = copy.deepcopy(model)
         epochs_without_improvement = 0
 
     else:
         epochs_without_improvement += 1
         if learning_rate > 0.00005:
             learning_rate /= 2
-            model = bestNN
+            model.load_state_dict(bestNN.state_dict())
         if epochs_without_improvement >= patience:
             break  # early stopping
 
