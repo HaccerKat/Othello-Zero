@@ -156,6 +156,9 @@ header h1 { margin: 0 0 4px; font-size: 2rem; letter-spacing: -0.01em; }
 
 .controls { display: grid; gap: 14px; margin-top: 22px; }
 label { display: grid; gap: 4px; font-size: 0.85rem; color: var(--muted); }
+label.toggle { display: flex; align-items: center; gap: 8px; color: var(--text); cursor: pointer; }
+label.toggle input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
+.eval[hidden] { display: none; }
 select, button { font: inherit; color: var(--text); }
 select {
   padding: 8px 10px;

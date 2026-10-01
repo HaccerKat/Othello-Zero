@@ -57,9 +57,29 @@ const els = {
   undo: document.getElementById("undo"),
   scoreBlack: document.getElementById("score-black"),
   scoreWhite: document.getElementById("score-white"),
+  eval: document.getElementById("eval"),
   evalText: document.getElementById("eval-text"),
   evalFill: document.getElementById("eval-fill"),
+  showEval: document.getElementById("show-eval"),
 };
+
+// Remember whether to show the evaluation. Storage can be unavailable (private mode, blocked
+// site data), in which case the setting just isn't saved.
+function loadShowEval() {
+  try {
+    return localStorage.getItem("showEval") !== "false";
+  } catch {
+    return true;
+  }
+}
+
+function setShowEval(show) {
+  els.showEval.checked = show;
+  els.eval.hidden = !show;
+  try {
+    localStorage.setItem("showEval", String(show));
+  } catch {}
+}
 
 const cells = [];
 for (let i = 0; i < 64; i++) {
@@ -207,4 +227,6 @@ function render() {
 els.newGame.addEventListener("click", newGame);
 els.undo.addEventListener("click", undo);
 els.colour.addEventListener("change", newGame);
+els.showEval.addEventListener("change", () => setShowEval(els.showEval.checked));
+setShowEval(loadShowEval());
 render();

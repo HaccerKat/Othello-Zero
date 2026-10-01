@@ -34,7 +34,7 @@
 
         <p id="status" class="status" aria-live="polite">Loading engine…</p>
 
-        <div class="eval" title="The engine's estimate of the final result, from its last search">
+        <div id="eval" class="eval" title="The engine's estimate of the final result, from its last search">
           <div class="eval-label"><span>Engine's evaluation</span><span id="eval-text">–</span></div>
           <div class="eval-bar"><div id="eval-fill" class="eval-fill"></div></div>
         </div>
@@ -52,6 +52,10 @@
               <option value="1000" selected>1 s</option>
               <option value="3000">3 s</option>
             </select>
+          </label>
+          <label class="toggle">
+            <input id="show-eval" type="checkbox" checked>
+            Show engine's evaluation
           </label>
           <div class="buttons">
             <button id="new-game" type="button">New game</button>
