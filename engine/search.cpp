@@ -51,9 +51,12 @@ std::pair<int, int> get_best_move(Board* position, double response_time, int max
     position->find_next_boards();
     int depth = 6;
     float eval = position->DRAW;
-    std::pair<int, int> move = {-1, 0};
+    // a legal move (or the pass) to fall back on if there is no time for a single iteration
+    std::pair<int, int> move = position->next_boards[0].second;
+    bool searched = false;
     while (std::chrono::duration<double>(Clock::now() - start).count() < response_time && depth < 64) {
         // pick the best move found by the last completed iteration
+        searched = true;
         float best_eval = position->get_player() ? position->BLACK_WINS : position->WHITE_WINS;
         for (auto [child, pair] : position->next_boards) {
             // black to move
@@ -78,6 +81,10 @@ std::pair<int, int> get_best_move(Board* position, double response_time, int max
 
         minimax(position, depth, position->WHITE_WINS, position->BLACK_WINS, start, response_time);
         depth++;
+    }
+
+    if (!searched) {
+        std::cerr << "Warning: out of time before searching, playing the first legal move" << std::endl;
     }
 
     if (verbose) {
