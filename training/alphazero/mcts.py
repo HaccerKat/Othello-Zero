@@ -1,11 +1,9 @@
 import torch
 import board_helper as bh
-import time
 
 # Even resnets cannot saturate a mid-tier GPU without inference batching
 def batch_inference(boards, model, num_games):
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    start = time.perf_counter()
     tensor = bh.bitboards_to_tensor(
         [board.player_board for board in boards],
         [board.opponent_board for board in boards]
@@ -22,7 +20,6 @@ def batch_inference(boards, model, num_games):
     for i in range(num_games):
         boards[i].policy_head = policies[i]
         boards[i].value_head = values[i].item()
-    end = time.perf_counter()
 
 def mcts(root, model, debug, mode, num_simulations, exploration_constant):
     batch_inference([root], model, 1)
@@ -65,12 +62,8 @@ def mcts_mp(roots, model, num_games, debug, mode, num_simulations, exploration_c
                     nodes[i] = nodes[i].select(exploration_constant)
 
         batch_inference(nodes, model, num_games)
-        start = time.perf_counter()
         for i in range(num_games):
             nodes[i].backpropagate(mode)
-
-        end = time.perf_counter()
-        globals.state['time_eval_3'] += end - start
 
     results = [None] * num_games
     for i in range(num_games):
