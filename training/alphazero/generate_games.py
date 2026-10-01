@@ -85,8 +85,7 @@ def main():
     torch.set_num_threads(1)
 
     model_numbers = [75]
-    # open('datasets/features.bin', 'wb')
-    # open('datasets/values.txt', 'w')
+    os.makedirs('datasets', exist_ok=True)
     while True:
         m1 = model_numbers[random.randint(0, len(model_numbers) - 1)]
         m2 = model_numbers[random.randint(0, len(model_numbers) - 1)]
