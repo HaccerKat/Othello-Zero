@@ -10,7 +10,7 @@ def loss_fn(prediction, target):
 def train_loop(dataloader, model, optimizer, scheduler, BATCH_SIZE):
     size = len(dataloader.dataset)
     model.train()
-    split_size = size // BATCH_SIZE // 20
+    split_size = max(1, size // BATCH_SIZE // 20)
     for batch, (input, policy, value) in enumerate(dataloader):
         input, policy, value = input.to(device), policy.to(device), value.to(device)
         prediction = model(input)

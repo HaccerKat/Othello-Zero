@@ -56,7 +56,7 @@ loss_fn = torch.nn.MSELoss()
 def train_loop(dataloader, model, loss_fn, optimizer):
     size = len(dataloader.dataset)
     model.train()
-    split_size = size // BATCH_SIZE // 20
+    split_size = max(1, size // BATCH_SIZE // 20)
     for batch, (input, value) in enumerate(dataloader):
         prediction = model(input)
         loss = loss_fn(prediction, value)
