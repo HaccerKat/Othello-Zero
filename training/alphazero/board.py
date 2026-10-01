@@ -84,7 +84,6 @@ class Board:
                 policy_value, move, child = self.next_boards[i]
                 self.next_boards[i] = ((1 - epsilon) * policy_value + dir, move, child)
 
-        sorted(self.next_boards, reverse=True)
 
     def game_ends(self):
         legal = bh.find_legal_moves(self.player_board, self.opponent_board)
