@@ -74,39 +74,6 @@ class Dataset(torch.utils.data.Dataset):
 
         return inputs, policy, value
 
-class NeuralNetworkNNUE(torch.nn.Module):
-    # Need to experiment to find a better NN structure
-    def __init__(self):
-        super().__init__()
-        self.layer1 = torch.nn.Linear(128, 384)
-        self.layer2 = torch.nn.Linear(384, 32)
-        self.layer3 = torch.nn.Linear(32, 16)
-        self.value = torch.nn.Linear(16, 1)
-
-    def forward(self, x):
-        x = F.relu(self.layer1(x))
-        x = F.relu(self.layer2(x))
-        x = F.relu(self.layer3(x))
-        value = F.tanh(self.value(x))
-        return value
-
-class DatasetNNUE(torch.utils.data.Dataset):
-    def __init__(self, inputs_uint8, value, transform = None):
-        self.inputs_uint8 = inputs_uint8
-        self.value = value
-        self.transform = transform
-
-    def __len__(self):
-        return len(self.inputs_uint8)
-
-    def __getitem__(self, idx):
-        inputs = torch.tensor(self.inputs_uint8[idx], dtype=torch.uint8).float()
-        value = torch.tensor(self.value[idx], dtype=torch.float32)
-        if self.transform:
-            inputs = self.transform(inputs)
-
-        return inputs, value
-
 def load_model(model_class, checkpoint_path, device=None, **model_kwargs):
     if device is None:
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

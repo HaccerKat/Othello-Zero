@@ -1,69 +1,55 @@
-import torch
-from nn_init import NeuralNetworkNNUE
+"""Quantize a trained NNUE checkpoint and export it for the engine.
+
+Usage: python export_weights.py CHECKPOINT [--out DIR]
+
+Weights and biases are scaled by QUANT_MULT and rounded to int16, then written as
+nnue_weights.inc / nnue_biases.inc in DIR (default: engine/weights), which the engine
+compiles in and codingame/build_bundle.py encodes for CodinGame.
+"""
+
+import argparse
+import sys
+from pathlib import Path
+
 import numpy as np
-def load_model(model_class, checkpoint_path, device=None, **model_kwargs):
-    if device is None:
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    model = model_class(**model_kwargs)
-    model.load_state_dict(torch.load(checkpoint_path, map_location=device))
-    model.to(device)
-    model.eval()
-    return model
+from model import NeuralNetworkNNUE, load_model
 
-name = input("Enter NNUE Name: ")
-model = load_model(NeuralNetworkNNUE, './models/model_weights_' + name + '.pth')
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "tools"))
+from weights_codec import write_inc  # noqa: E402
 
-state_dict = model.state_dict()
-
-params = {k: v.cpu().numpy() for k, v in state_dict.items()}
-
-open('./models/weights_' + name + '.txt', 'w').close()
-open('./models/biases_' + name + '.txt', 'w').close()
-all_weights = []
-all_biases = []
-for x in range(4):
-    weights = params[('layer' + str(x + 1) if x < 3 else 'value') + '.weight']
-    weights = weights.flatten()
-    weights = weights.tolist()
-    file1 = open('./models/weights_' + name + '.txt', "a+")
-    file1.write(" ".join(str(x) for x in weights))
-    file1.write('\n')
-    file1.close()
-    all_weights += weights
-
-    biases = params[('layer' + str(x + 1) if x < 3 else 'value') + '.bias']
-    biases = biases.tolist()
-    file2 = open('./models/biases_' + name + '.txt', "a+")
-    file2.write(" ".join(str(x) for x in biases))
-    file2.write('\n')
-    file2.close()
-    all_biases += biases
-
-# Use ascii 33 (!) to 125 (})
-# ascii 126 (~) is used as a seperator for larger values
-# Prints 2 \ so it can be hardcoded
-# Cannot be used in simulate_games.cpp anymore
+# Must match engine/nnue.h
 BOUND = 0.05
 QUANT_MULT = 46.5 / BOUND
-def f(x):
-    x = round(x * QUANT_MULT)
-    if -46 <= x <= 46:
-        c = chr(ord('!') + x + 46)
-        return c if c != '\\' and c != '\'' and c != '\"' else '\\' + c
-    d1 = x // 93
-    d2 = x % 93
-    c1 = chr(ord('!') + d1 + 46)
-    c2 = chr(ord('!') + d2)
-    return '~' + (c1 if c1 != '\\' and c1 != '\'' and c1 != '\"' else '\\' + c1) + (c2 if c2 != '\\' and c2 != '\'' and c2 != '\"' else '\\' + c2)
+LAYERS = ["layer1", "layer2", "layer3", "value"]
 
-print(np.std(all_weights))
-print(np.std(all_biases))
-all_weights = list(map(f, all_weights))
-all_biases = list(map(f, all_biases))
-with open('./models/weights_' + name + '_quantized.txt', 'w') as f:
-    f.write(''.join(str(x) for x in all_weights))
-    f.write('\n')
-with open('./models/biases_' + name + '_quantized.txt', 'w') as f:
-    f.write(''.join(str(x) for x in all_biases))
-    f.write('\n')
+
+def quantize(values):
+    quantized = [round(x * QUANT_MULT) for x in values]
+    if max(abs(q) for q in quantized) > 32767:
+        raise OverflowError("a weight does not fit in int16 at this BOUND")
+    return quantized
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("checkpoint")
+    parser.add_argument("--out", default=str(ROOT / "engine" / "weights"))
+    args = parser.parse_args()
+
+    model = load_model(NeuralNetworkNNUE, args.checkpoint, device="cpu")
+    params = {k: v.numpy() for k, v in model.state_dict().items()}
+    # Linear weights are (out, in), flattened row-major: one row of inputs per output neuron
+    weights = np.concatenate([params[f"{name}.weight"].flatten() for name in LAYERS]).tolist()
+    biases = np.concatenate([params[f"{name}.bias"] for name in LAYERS]).tolist()
+    print(f"weight std {np.std(weights):.4f}, bias std {np.std(biases):.4f}")
+
+    out = Path(args.out)
+    write_inc(out / "nnue_weights.inc", quantize(weights))
+    write_inc(out / "nnue_biases.inc", quantize(biases))
+    print(f"wrote {len(weights)} weights and {len(biases)} biases to {out}")
+
+
+if __name__ == "__main__":
+    main()

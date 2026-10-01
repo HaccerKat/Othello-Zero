@@ -1,8 +1,27 @@
+"""Train the NNUE on positions labelled by the AlphaZero network.
+
+Usage: python train.py [--data DIR] [--out DIR]
+
+DIR holds features.bin and values.txt, written by training/alphazero/generate_games.py.
+Checkpoints are saved to the output directory after every epoch, plus best.pth.
+"""
+
+import argparse
+import os
+
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
-from nn_init import NeuralNetworkNNUE, DatasetNNUE
+from model import NeuralNetworkNNUE, DatasetNNUE
+
+parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+parser.add_argument("--data", default="../alphazero/datasets")
+parser.add_argument("--out", default="models_nnue")
+args = parser.parse_args()
+os.makedirs(args.out, exist_ok=True)
+
+
 def load_128bit_samples(filename):
     with open(filename, 'rb') as f:
         raw = np.frombuffer(f.read(), dtype=np.uint8)
@@ -19,8 +38,8 @@ def load_values(filename):
     values = values.reshape(-1, 1)
     return values
 
-inputs = load_128bit_samples("./datasets/features.bin")
-values = load_values("./datasets/values.txt")
+inputs = load_128bit_samples(os.path.join(args.data, "features.bin"))
+values = load_values(os.path.join(args.data, "values.txt"))
 dataset = DatasetNNUE(inputs, values)
 training_data, test_data = torch.utils.data.random_split(dataset, [0.8, 0.2])
 
@@ -74,7 +93,7 @@ for t in range(epochs):
     optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, weight_decay=1e-4, momentum=0.9)
     train_loop(train_dataloader, model, loss_fn, optimizer)
     test_loss = test_loop(test_dataloader, model, loss_fn)
-    torch.save(model.state_dict(), 'models_nnue/model_weights_' + str(t + 1) + '.pth')
+    torch.save(model.state_dict(), os.path.join(args.out, 'model_weights_' + str(t + 1) + '.pth'))
     if test_loss < best_val_loss:
         best_val_loss = test_loss
         bestNN = model
@@ -88,4 +107,4 @@ for t in range(epochs):
         if epochs_without_improvement >= patience:
             break  # early stopping
 
-torch.save(bestNN.state_dict(), 'models_nnue/best.pth')
+torch.save(bestNN.state_dict(), os.path.join(args.out, 'best.pth'))
