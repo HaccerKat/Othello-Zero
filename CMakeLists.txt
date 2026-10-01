@@ -1,32 +1,31 @@
-cmake_minimum_required(VERSION 3.31)
-project(Othello_AI)
+cmake_minimum_required(VERSION 3.20)
+project(OthelloZero LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -H -Wall -O2 -Wextra -Wshadow -D_GLIBCXX_ASSERTIONS -DDEBUG -ggdb3 -fmax-errors=4")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -H -Wall -O3 -mavx2 -mfma -Wextra -Wshadow -D_GLIBCXX_ASSERTIONS -fsanitize=undefined,address -DDEBUG -ggdb3 -fmax-errors=4")
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
 
-include_directories(.)
-include_directories(nnue)
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    add_compile_options(-Wall -Wextra -Wshadow)
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+    set(CMAKE_CXX_FLAGS_DEBUG "-O1 -g -D_GLIBCXX_ASSERTIONS -fsanitize=address,undefined")
+    set(CMAKE_EXE_LINKER_FLAGS_DEBUG "-fsanitize=address,undefined")
+endif()
 
-add_executable(Simulate_Games
-        nnue/board.cpp
-        nnue/experimental_board.cpp
-        nnue/globals.cpp
-        nnue/minimax.cpp
-        nnue/simulate_games.cpp
-        nnue/global_funcs.cpp)
+add_library(othello_engine STATIC engine/board.cpp engine/nnue.cpp engine/search.cpp)
+target_include_directories(othello_engine PUBLIC engine)
 
-add_executable(Engine
-        nnue/board.cpp
-        nnue/engine.cpp
-        nnue/experimental_board.cpp
-        nnue/globals.cpp
-        nnue/minimax.cpp
-        nnue/global_funcs.cpp)
+if(EMSCRIPTEN)
+    # Browser build, see web/README.md
+    return()
+endif()
 
-add_executable(Quantization_Test
-        nnue/quantization_test.cpp
-        nnue/global_funcs.cpp)
+add_executable(othello-engine engine/cli.cpp)
+target_link_libraries(othello-engine PRIVATE othello_engine)
 
-add_executable(Load_NNUE
-        nnue/load_nnue.cpp)
+enable_testing()
+add_executable(engine_tests engine/tests/test_engine.cpp)
+target_link_libraries(engine_tests PRIVATE othello_engine)
+add_test(NAME engine_tests COMMAND engine_tests ${CMAKE_CURRENT_SOURCE_DIR}/engine/tests/data/positions.txt)
