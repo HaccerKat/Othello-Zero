@@ -3,21 +3,9 @@
 #include <climits>
 #include <iostream>
 #include <string>
-#include <vector>
-#include <poll.h>
 
 #include "board.h"
 #include "search.h"
-
-// Moves to the child for (x, y) and detaches it, so the rest of the old tree can be freed.
-static Board* advance(Board* board, int x, int y, std::vector<Board*>& garbage) {
-    Board* next = board->advance_move(x, y);
-    for (auto& [child, move] : board->next_boards) {
-        if (child == next) child = nullptr;
-    }
-    garbage.push_back(board);
-    return next;
-}
 
 int main()
 {
@@ -27,9 +15,6 @@ int main()
     std::cin >> board_size; std::cin.ignore();
 
     Board* board = nullptr;
-    std::vector<Board*> garbage;
-    double response_time = 0.147; // turn limit is 150 ms
-    double overlap = 0; // time our next turn may already have been running for
     // game loop
     while (1) {
         char grid[8][8];
@@ -51,19 +36,19 @@ int main()
             std::cin >> opponent_moves;
             int tmp = opponent_moves[0] - 'a';
             if (tmp < 0 || tmp >= 8) {
-                board = advance(board, -1, -1, garbage);
+                board = board->advance_move(-1, -1);
             }
 
             else {
                 for (int i = 0; i < (int)opponent_moves.size(); i += 3) {
                     // consecutive opponent moves mean we had to pass in between
                     if (i > 0) {
-                        board = advance(board, -1, -1, garbage);
+                        board = board->advance_move(-1, -1);
                     }
 
                     int x = opponent_moves[i + 1] - '0' - 1;
                     int y = opponent_moves[i] - 'a';
-                    board = advance(board, x, y, garbage);
+                    board = board->advance_move(x, y);
                 }
             }
         }
@@ -75,18 +60,8 @@ int main()
             std::cin >> action; std::cin.ignore();
         }
 
-        auto [x, y] = get_best_move(board, response_time - overlap, INT_MAX, true);
-        board = advance(board, x, y, garbage);
+        auto [x, y] = get_best_move(board, 0.147, INT_MAX, true);
+        board = board->advance_move(x, y);
         std::cout << "EXPERT " << (char)(y + 'a') << x + 1 << std::endl; // a-h1-8
-
-        // free the explored tree after replying, while the opponent thinks
-        auto free_start = std::chrono::steady_clock::now();
-        for (Board* old : garbage) delete old;
-        garbage.clear();
-        std::chrono::duration<double> free_time = std::chrono::steady_clock::now() - free_start;
-
-        // if the opponent already replied, our clock started during the cleanup
-        pollfd input = {0, POLLIN, 0};
-        overlap = poll(&input, 1, 0) > 0 ? free_time.count() : 0;
     }
 }
