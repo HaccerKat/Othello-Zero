@@ -18,7 +18,16 @@ add_library(othello_engine STATIC engine/board.cpp engine/nnue.cpp engine/search
 target_include_directories(othello_engine PUBLIC engine)
 
 if(EMSCRIPTEN)
-    # Browser build, see web/README.md
+    # Browser build: emcmake cmake -B build-web && cmake --build build-web
+    # writes web/engine.js and web/engine.wasm next to the page.
+    add_executable(engine engine/wasm.cpp)
+    target_link_libraries(engine PRIVATE othello_engine)
+    target_compile_options(othello_engine PRIVATE -msimd128)
+    target_link_options(engine PRIVATE
+        -sENVIRONMENT=worker -sMODULARIZE -sEXPORT_NAME=createEngine
+        -sEXPORTED_FUNCTIONS=_best_move -sEXPORTED_RUNTIME_METHODS=cwrap
+        -sALLOW_MEMORY_GROWTH -sINITIAL_MEMORY=64MB)
+    set_target_properties(engine PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/web)
     return()
 endif()
 

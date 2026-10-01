@@ -17,3 +17,7 @@ __pycache__/
 .vscode/
 .idea/
 *.amltmp
+
+# WebAssembly build output (emcmake cmake -B build-web)
+web/engine.js
+web/engine.wasm
