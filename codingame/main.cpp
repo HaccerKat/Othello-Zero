@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <poll.h>
 
 #include "board.h"
 #include "search.h"
@@ -27,6 +28,8 @@ int main()
 
     Board* board = nullptr;
     std::vector<Board*> garbage;
+    double response_time = 0.147; // turn limit is 150 ms
+    double overlap = 0; // time our next turn may already have been running for
     // game loop
     while (1) {
         char grid[8][8];
@@ -72,12 +75,18 @@ int main()
             std::cin >> action; std::cin.ignore();
         }
 
-        auto [x, y] = get_best_move(board, 0.147, INT_MAX, true);
+        auto [x, y] = get_best_move(board, response_time - overlap, INT_MAX, true);
         board = advance(board, x, y, garbage);
         std::cout << "EXPERT " << (char)(y + 'a') << x + 1 << std::endl; // a-h1-8
 
-        // free the explored tree after replying, so it doesn't count against our turn
+        // free the explored tree after replying, while the opponent thinks
+        auto free_start = std::chrono::steady_clock::now();
         for (Board* old : garbage) delete old;
         garbage.clear();
+        std::chrono::duration<double> free_time = std::chrono::steady_clock::now() - free_start;
+
+        // if the opponent already replied, our clock started during the cleanup
+        pollfd input = {0, POLLIN, 0};
+        overlap = poll(&input, 1, 0) > 0 ? free_time.count() : 0;
     }
 }
