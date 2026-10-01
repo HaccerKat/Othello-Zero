@@ -172,6 +172,8 @@ def main():
     os.environ["OMP_NUM_THREADS"] = "1"
     os.environ["MKL_NUM_THREADS"] = "1"
     os.environ["NUMEXPR_NUM_THREADS"] = "1"
+    for folder in ("models", "plots/elo", "plots/validation_loss", "plots/entropy"):
+        os.makedirs(folder, exist_ok=True)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using {device} device")
