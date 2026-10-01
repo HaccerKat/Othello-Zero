@@ -44,7 +44,7 @@ def training_loop(generation, model, device):
     print("Generating Games...")
     batches = execute_gpu(generate_games, jobs)
 
-    for batch, position_importance, cnt in batches:
+    for batch in batches:
         for player_board, opponent_board, policy, value in batch:
             # since the size of the group of symmetrical boards is 8
             sum_entropy += entropy(policy)
