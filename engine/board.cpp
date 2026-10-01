@@ -45,11 +45,8 @@ int Board::get_winner_num() const {
 void Board::get_static_eval() {
     if (find_if_game_ends()) {
         auto [black_points, white_points] = get_points();
-        if (black_points == white_points) {
-            eval = DRAW;
-        }
-
-        eval = black_points > white_points ? BLACK_WINS : WHITE_WINS;
+        if (black_points == white_points) eval = DRAW;
+        else eval = black_points > white_points ? BLACK_WINS : WHITE_WINS;
         return;
     }
 

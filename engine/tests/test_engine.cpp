@@ -57,6 +57,14 @@ static void test_perft() {
     }
 }
 
+// With 7 empty squares, black's only non-losing move is h4, which draws.
+static void test_endgame_draw() {
+    Board* board = make_board("1.1.001.11.10000111010011111000.11111111110000011111100110.000000");
+    std::string move = move_to_string(get_best_move(board, 1e9, 12));
+    check(move == "h4", "endgame draw: move " + move + ", expected h4");
+    delete board;
+}
+
 static void test_positions(const char* path) {
     std::ifstream file(path);
     check(file.good(), std::string("cannot open ") + path);
@@ -91,6 +99,7 @@ int main(int argc, char** argv) {
     }
 
     test_perft();
+    test_endgame_draw();
     test_positions(argv[1]);
     if (failures) {
         std::cerr << failures << " check(s) failed\n";
