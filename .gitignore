@@ -1,7 +1,19 @@
-**/build/
-.vscode/
+# Build output
+build*/
+*.o
+*.exe
+
+# Python
+__pycache__/
+*.pyc
 .venv/
-.idea/
+.ipynb_checkpoints/
+
+# Training artifacts (large; not tracked)
 **/datasets/
+**/checkpoints/
+
+# Editors
+.vscode/
+.idea/
 *.amltmp
-**/models/
