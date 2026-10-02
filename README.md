@@ -71,20 +71,6 @@ exploring.
 
 Total, policy and value loss on held-out self-play positions for each generation.
 
-### CodinGame ranking
-
-| Date | Rank |
-| --- | --- |
-| July 2024 | 85 / 518 (top 17%) |
-| May 2025 | 57 / 573 (top 10%) |
-| July 2025 | 39 / 577 (top 7%) |
-| October 2025 | 37 / 591 (top 7%) |
-| January 2026 | 35 / 600 (top 6%) |
-| October 2026 | 44 / 644 (top 7%) |
-
-The field has grown stronger over 2026; before the latest round of engine optimizations the bot had
-slipped to 63rd.
-
 ## Building
 
 Requires CMake 3.20+ and a C++20 compiler.
