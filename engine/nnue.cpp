@@ -11,10 +11,6 @@ int16_t QUANT_BIASES[BIASES_SZ] = {
 };
 // END WEIGHTS
 
-// An occupied square's input quantizes to round(1 * QUANT_MULT), an empty one's to 0.
-constexpr int INPUT_SCALE = 930;
-static_assert(QUANT_MULT == INPUT_SCALE, "update INPUT_SCALE to round(QUANT_MULT)");
-
 // First-layer weights transposed so each input's 256 weights are contiguous.
 struct ColumnTable {
     int16_t columns[LAYERS[0]][LAYERS[1]];
@@ -35,9 +31,10 @@ float nnue_evaluate(const char grid[8][8], bool player) {
     // built on first use, after the CodinGame bundle has decoded the weights
     static const ColumnTable table = build_columns();
 
-    // First layer: the inputs are 0 or INPUT_SCALE, so the dot product is exactly
-    // INPUT_SCALE * (sum of the weights of occupied squares). Summing only those columns
-    // gives the same integer as the dense product, so the result is bit-identical.
+    // First layer: an occupied square's input quantizes to QUANT_MULT and an empty one's to 0,
+    // so the dense product is exactly QUANT_MULT * (sum of the weights of occupied squares),
+    // and requantizing divides QUANT_MULT back out. The output is therefore just the sum plus
+    // the bias, bit-identical to the dense layer (test_first_layer_identity checks the round trip).
     int32_t sum[LAYERS[1]] = {};
     for (int i = 0; i < 8; i++) {
         for (int j = 0; j < 8; j++) {
@@ -54,8 +51,7 @@ float nnue_evaluate(const char grid[8][8], bool player) {
     int16_t res_int[RES_SZ];
     int idx_res = LAYERS[0];
     for (int j = 0; j < LAYERS[1]; j++) {
-        int acc = sum[j] * INPUT_SCALE;
-        res_int[idx_res] = round(acc / QUANT_MULT) + QUANT_BIASES[j];
+        res_int[idx_res] = sum[j] + QUANT_BIASES[j];
         // ReLU
         res_int[idx_res] = std::max((int16_t)0, res_int[idx_res]);
         idx_res++;
