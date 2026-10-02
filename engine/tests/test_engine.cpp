@@ -139,6 +139,22 @@ static void read_grid(Board* board, char grid[8][8]) {
     for (int i = 0; i < 64; i++) grid[i / 8][i % 8] = board->get_pos(i / 8, i % 8);
 }
 
+// The first layer's dense product is QUANT_MULT times the sum of the active weights, and its
+// requantization divides that back out. Check that this round trip is exactly the identity for
+// every sum the first-layer weights can produce (at most 64 occupied squares).
+static void test_first_layer_identity() {
+    int max_abs = 0;
+    for (int i = 0; i < LAYERS[0] * LAYERS[1]; i++) max_abs = std::max(max_abs, std::abs((int)QUANT_WEIGHTS[i]));
+    const int bound = 64 * max_abs;
+    int mismatches = 0;
+    for (int sum = -bound; sum <= bound; sum++) {
+        int acc = sum * 930;
+        if ((long long)round(acc / QUANT_MULT) != sum) mismatches++;
+    }
+    check(mismatches == 0, "first-layer requantization is not the identity for " + std::to_string(mismatches) +
+                           " sums in [-" + std::to_string(bound) + ", " + std::to_string(bound) + "]");
+}
+
 // nnue_evaluate must match the reference bit for bit.
 static void test_eval_exact(const char* path) {
     std::vector<Board*> roots;
@@ -212,6 +228,7 @@ int main(int argc, char** argv) {
 
     test_perft();
     test_endgame_draw();
+    test_first_layer_identity();
     test_eval_exact(argv[1]);
     test_game_end_check(argv[1]);
     test_positions(argv[1]);
