@@ -4,12 +4,15 @@
 //
 // DATA_FILE lists positions with the move the original CodinGame submission chose at depth 6
 // and the evaluation from tools/nnue_reference.py.
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <math.h>
 #include <sstream>
 #include <string>
+#include <vector>
 
 #include "board.h"
 #include "nnue.h"
@@ -33,6 +36,52 @@ static Board* make_board(const std::string& position) {
 static std::string move_to_string(std::pair<int, int> move) {
     if (move.first < 0) return "pass";
     return std::string(1, 'a' + move.second) + std::to_string(move.first + 1);
+}
+
+// The original dense forward pass, kept verbatim as a reference: optimizations to nnue_evaluate
+// must give bit-identical results.
+static float reference_evaluate(const char grid[8][8], bool player) {
+    int nnue_layer[128];
+    memset(nnue_layer, 0, sizeof(nnue_layer));
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+            int pos = i * 8 + j;
+            if (grid[i][j] != '.') {
+                if (grid[i][j] - '0' == player) nnue_layer[pos] = 1;
+                else nnue_layer[pos + 64] = 1;
+            }
+        }
+    }
+
+    int16_t res_int[RES_SZ];
+    for (int i = 0; i < LAYERS[0]; i++) {
+        res_int[i] = round(nnue_layer[i] * QUANT_MULT);
+    }
+
+    float eval = 0;
+    int idx_weights = 0, idx_biases = 0, idx_res = LAYERS[0];
+    for (int i = 1; i < CNT_LAYERS; i++) {
+        int start_idx = idx_res - LAYERS[i - 1];
+        for (int j = 0; j < LAYERS[i]; j++) {
+            int acc = 0;
+            for (int k = 0; k < LAYERS[i - 1]; k++) {
+                acc += QUANT_WEIGHTS[idx_weights + k] * res_int[start_idx + k];
+            }
+
+            res_int[idx_res] = round(acc / QUANT_MULT) + QUANT_BIASES[idx_biases];
+            if (i + 1 == CNT_LAYERS) {
+                float val = res_int[idx_res] / QUANT_MULT;
+                eval = tanh(val) * (player == 1 ? -1 : 1);
+            }
+            else {
+                res_int[idx_res] = std::max((int16_t)0, res_int[idx_res]);
+            }
+
+            idx_weights += LAYERS[i - 1], idx_biases++, idx_res++;
+        }
+    }
+
+    return eval;
 }
 
 // Leaf count at `depth` plies; a pass counts as a ply and finished games are leaves.
@@ -63,6 +112,38 @@ static void test_endgame_draw() {
     std::string move = move_to_string(get_best_move(board, 1e9, 12));
     check(move == "h4", "endgame draw: move " + move + ", expected h4");
     delete board;
+}
+
+// Compares nnue_evaluate with the reference on each data file position and every position up to
+// two plies after it (passes included).
+static void test_eval_exact(const char* path) {
+    std::ifstream file(path);
+    std::vector<Board*> roots, boards;
+    std::string line;
+    while (std::getline(file, line)) {
+        if (line.empty() || line[0] == '#') continue;
+        Board* root = make_board(line.substr(0, 65));
+        roots.push_back(root);
+        boards.push_back(root);
+        root->find_next_boards();
+        for (auto [child, move] : root->next_boards) {
+            boards.push_back(child);
+            child->find_next_boards();
+            for (auto [grandchild, child_move] : child->next_boards) boards.push_back(grandchild);
+        }
+    }
+
+    int mismatches = 0;
+    for (Board* board : boards) {
+        char grid[8][8];
+        for (int i = 0; i < 64; i++) grid[i / 8][i % 8] = board->get_pos(i / 8, i % 8);
+        if (nnue_evaluate(grid, board->get_player()) != reference_evaluate(grid, board->get_player())) mismatches++;
+    }
+    check(boards.size() > 1000, "too few positions for the exact eval test: " + std::to_string(boards.size()));
+    check(mismatches == 0, "nnue_evaluate differs from the reference on " + std::to_string(mismatches) + " of " +
+                           std::to_string(boards.size()) + " positions");
+
+    for (Board* root : roots) delete root;  // children are owned by their roots
 }
 
 static void test_positions(const char* path) {
@@ -100,6 +181,7 @@ int main(int argc, char** argv) {
 
     test_perft();
     test_endgame_draw();
+    test_eval_exact(argv[1]);
     test_positions(argv[1]);
     if (failures) {
         std::cerr << failures << " check(s) failed\n";
