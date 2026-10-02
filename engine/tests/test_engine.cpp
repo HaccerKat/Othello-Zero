@@ -114,11 +114,11 @@ static void test_endgame_draw() {
     delete board;
 }
 
-// Compares nnue_evaluate with the reference on each data file position and every position up to
-// two plies after it (passes included).
-static void test_eval_exact(const char* path) {
+// Each data file position and every position up to two plies after it (passes included).
+// The returned boards are owned by `roots`.
+static std::vector<Board*> nearby_positions(const char* path, std::vector<Board*>& roots) {
     std::ifstream file(path);
-    std::vector<Board*> roots, boards;
+    std::vector<Board*> boards;
     std::string line;
     while (std::getline(file, line)) {
         if (line.empty() || line[0] == '#') continue;
@@ -132,18 +132,49 @@ static void test_eval_exact(const char* path) {
             for (auto [grandchild, child_move] : child->next_boards) boards.push_back(grandchild);
         }
     }
+    return boards;
+}
 
+static void read_grid(Board* board, char grid[8][8]) {
+    for (int i = 0; i < 64; i++) grid[i / 8][i % 8] = board->get_pos(i / 8, i % 8);
+}
+
+// nnue_evaluate must match the reference bit for bit.
+static void test_eval_exact(const char* path) {
+    std::vector<Board*> roots;
+    std::vector<Board*> boards = nearby_positions(path, roots);
     int mismatches = 0;
     for (Board* board : boards) {
         char grid[8][8];
-        for (int i = 0; i < 64; i++) grid[i / 8][i % 8] = board->get_pos(i / 8, i % 8);
+        read_grid(board, grid);
         if (nnue_evaluate(grid, board->get_player()) != reference_evaluate(grid, board->get_player())) mismatches++;
     }
     check(boards.size() > 1000, "too few positions for the exact eval test: " + std::to_string(boards.size()));
     check(mismatches == 0, "nnue_evaluate differs from the reference on " + std::to_string(mismatches) + " of " +
                            std::to_string(boards.size()) + " positions");
+    for (Board* root : roots) delete root;
+}
 
-    for (Board* root : roots) delete root;  // children are owned by their roots
+// has_legal_move must agree with full move generation, and the game-over check built on it
+// with find_if_game_ends.
+static void test_game_end_check(const char* path) {
+    std::vector<Board*> roots;
+    std::vector<Board*> boards = nearby_positions(path, roots);
+    int mismatches = 0, finished = 0;
+    for (Board* board : boards) {
+        char grid[8][8];
+        read_grid(board, grid);
+        Board fresh(grid, board->get_player());
+        fresh.find_next_boards();
+        bool player_can_move = has_legal_move(grid, fresh.get_player());
+        bool ends = !player_can_move && !has_legal_move(grid, fresh.get_player() ^ 1);
+        if (player_can_move == fresh.has_no_move() || ends != fresh.find_if_game_ends()) mismatches++;
+        finished += ends;
+    }
+    check(mismatches == 0, "has_legal_move disagrees with move generation on " + std::to_string(mismatches) + " of " +
+                           std::to_string(boards.size()) + " positions");
+    check(finished > 0, "no finished games among the game-end test positions");
+    for (Board* root : roots) delete root;
 }
 
 static void test_positions(const char* path) {
@@ -182,6 +213,7 @@ int main(int argc, char** argv) {
     test_perft();
     test_endgame_draw();
     test_eval_exact(argv[1]);
+    test_game_end_check(argv[1]);
     test_positions(argv[1]);
     if (failures) {
         std::cerr << failures << " check(s) failed\n";

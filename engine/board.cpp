@@ -42,8 +42,42 @@ int Board::get_winner_num() const {
     return black_points > white_points ? 0 : 2;
 }
 
+bool has_legal_move(const char grid[8][8], int who) {
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+            if (grid[i][j] != '.') {
+                continue;
+            }
+
+            for (int dx = -1; dx <= 1; dx++) {
+                for (int dy = -1; dy <= 1; dy++) {
+                    if (dx == 0 && dy == 0) {
+                        continue;
+                    }
+
+                    // a legal move flanks a line of opponent discs with one of our own
+                    int x = i + dx, y = j + dy, flip_number = 0;
+                    while (x >= 0 && x < 8 && y >= 0 && y < 8 && grid[x][y] != '.' && grid[x][y] - '0' != who) {
+                        x += dx, y += dy, flip_number++;
+                    }
+
+                    if (flip_number > 0 && x >= 0 && x < 8 && y >= 0 && y < 8 && grid[x][y] - '0' == who) {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
 void Board::get_static_eval() {
-    if (find_if_game_ends()) {
+    // Most evaluated positions are leaves that are never searched, so avoid generating
+    // their children just to find out whether the game is over.
+    bool ends = found_next_moves ? find_if_game_ends()
+                                 : !has_legal_move(grid, player) && !has_legal_move(grid, player ^ 1);
+    if (ends) {
         auto [black_points, white_points] = get_points();
         if (black_points == white_points) eval = DRAW;
         else eval = black_points > white_points ? BLACK_WINS : WHITE_WINS;

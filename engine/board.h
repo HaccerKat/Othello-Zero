@@ -2,6 +2,9 @@
 #include <utility>
 #include <vector>
 
+// Whether `who` (0 = black, 1 = white) has a legal move, without generating any positions.
+bool has_legal_move(const char grid[8][8], int who);
+
 // A node of the game tree. Children are generated lazily and owned by their parent.
 // Grid cells: '.' empty, '0' black, '1' white. player: 0 = black to move, 1 = white.
 // A pass is represented as a child with move (-1, -1).
