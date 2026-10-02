@@ -13,7 +13,9 @@ void minimax(Board* position, int depth, float alpha, float beta, Clock::time_po
     }
 
     position->find_next_boards();
-    std::sort(position->next_boards.begin(), position->next_boards.end(), [&](std::pair<Board*, std::pair<int, int>> a, std::pair<Board*, std::pair<int, int>> b) {
+    // Children of depth-1 nodes are leaves: sorting them would evaluate every one before a cutoff
+    // can happen. Leave them unsorted so get_eval() below only evaluates the ones visited.
+    if (depth > 1) std::sort(position->next_boards.begin(), position->next_boards.end(), [&](std::pair<Board*, std::pair<int, int>> a, std::pair<Board*, std::pair<int, int>> b) {
         if (!position->get_player()) {
             return a.first->get_eval() > b.first->get_eval();
         }
