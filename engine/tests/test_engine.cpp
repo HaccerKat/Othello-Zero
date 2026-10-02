@@ -33,6 +33,10 @@ static Board* make_board(const std::string& position) {
     return new Board(grid, position[64] == '1');
 }
 
+static void read_grid(Board* board, char grid[8][8]) {
+    for (int i = 0; i < 64; i++) grid[i / 8][i % 8] = board->get_pos(i / 8, i % 8);
+}
+
 static std::string move_to_string(std::pair<int, int> move) {
     if (move.first < 0) return "pass";
     return std::string(1, 'a' + move.second) + std::to_string(move.first + 1);
@@ -137,6 +141,31 @@ static void test_root_value_matches_minimax(const char* path) {
                            std::to_string(count) + " positions");
 }
 
+// The move chosen at fixed depth must be worth the root value: searching the position after it
+// one ply shallower must give exactly that value.
+static void test_chosen_move_is_best(const char* path) {
+    for (int depth : {4, 6}) {
+        std::ifstream file(path);
+        std::string line;
+        int mismatches = 0, count = 0;
+        while (std::getline(file, line)) {
+            if (line.empty() || line[0] == '#') continue;
+            Board* root = make_board(line.substr(0, 65));
+            auto [x, y] = get_best_move(root, 1e9, depth);
+            Board* after = root->advance_move(x, y);
+            char grid[8][8];
+            read_grid(after, grid);
+            Board fresh(grid, after->get_player());
+            get_best_move(&fresh, 1e9, depth - 1);
+            if (fresh.get_eval() != root->get_eval()) mismatches++;
+            count++;
+            delete root;
+        }
+        check(mismatches == 0, "depth " + std::to_string(depth) + ": the chosen move is worse than the root value on " +
+                               std::to_string(mismatches) + " of " + std::to_string(count) + " positions");
+    }
+}
+
 // With 7 empty squares, black's only non-losing move is h4, which draws.
 static void test_endgame_draw() {
     Board* board = make_board("1.1.001.11.10000111010011111000.11111111110000011111100110.000000");
@@ -164,10 +193,6 @@ static std::vector<Board*> nearby_positions(const char* path, std::vector<Board*
         }
     }
     return boards;
-}
-
-static void read_grid(Board* board, char grid[8][8]) {
-    for (int i = 0; i < 64; i++) grid[i / 8][i % 8] = board->get_pos(i / 8, i % 8);
 }
 
 // The first layer's dense product is QUANT_MULT times the sum of the active weights, and its
@@ -260,6 +285,7 @@ int main(int argc, char** argv) {
     test_perft();
     test_endgame_draw();
     test_root_value_matches_minimax(argv[1]);
+    test_chosen_move_is_best(argv[1]);
     test_first_layer_identity();
     test_eval_exact(argv[1]);
     test_game_end_check(argv[1]);

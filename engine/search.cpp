@@ -59,20 +59,22 @@ std::pair<int, int> get_best_move(Board* position, double response_time, int max
     std::pair<int, int> move = position->next_boards[0].second;
     bool searched = false;
     while (std::chrono::duration<double>(Clock::now() - start).count() < response_time && depth < 64) {
-        // pick the best move found by the last completed iteration
+        // Pick the best move found by the last completed iteration. Only the best move's value is
+        // exact: refuted moves store bounds, which can tie the best value through transpositions.
+        // So take the first move, in the order searched, that reaches the best value.
         searched = true;
         float best_eval = position->get_player() ? position->BLACK_WINS : position->WHITE_WINS;
         for (auto [child, pair] : position->next_boards) {
             // black to move
             if (!position->get_player()) {
-                if (child->get_eval() >= best_eval) {
+                if (child->get_eval() > best_eval) {
                     best_eval = child->get_eval(), move = pair;
                 }
             }
 
             // white to move
             else {
-                if (child->get_eval() <= best_eval) {
+                if (child->get_eval() < best_eval) {
                     best_eval = child->get_eval(), move = pair;
                 }
             }
