@@ -106,6 +106,37 @@ static void test_perft() {
     }
 }
 
+// Plain minimax without pruning; leaves and finished games use the static evaluation.
+static float full_minimax(Board* board, int depth) {
+    if (depth == 0 || board->find_if_game_ends()) return board->get_eval();
+    float best = board->get_player() ? board->BLACK_WINS : board->WHITE_WINS;
+    for (auto [child, move] : board->next_boards) {
+        float value = full_minimax(child, depth - 1);
+        best = board->get_player() ? std::min(best, value) : std::max(best, value);
+    }
+    return best;
+}
+
+// Alpha-beta must return the same root value as plain minimax, whatever it prunes.
+static void test_root_value_matches_minimax(const char* path) {
+    const int depth = 4;
+    std::ifstream file(path);
+    std::string line;
+    int mismatches = 0, count = 0;
+    while (std::getline(file, line)) {
+        if (line.empty() || line[0] == '#') continue;
+        Board* searched = make_board(line.substr(0, 65));
+        Board* reference = make_board(line.substr(0, 65));
+        get_best_move(searched, 1e9, depth);
+        if (searched->get_eval() != full_minimax(reference, depth)) mismatches++;
+        count++;
+        delete searched;
+        delete reference;
+    }
+    check(mismatches == 0, "alpha-beta root value differs from minimax on " + std::to_string(mismatches) + " of " +
+                           std::to_string(count) + " positions");
+}
+
 // With 7 empty squares, black's only non-losing move is h4, which draws.
 static void test_endgame_draw() {
     Board* board = make_board("1.1.001.11.10000111010011111000.11111111110000011111100110.000000");
@@ -228,6 +259,7 @@ int main(int argc, char** argv) {
 
     test_perft();
     test_endgame_draw();
+    test_root_value_matches_minimax(argv[1]);
     test_first_layer_identity();
     test_eval_exact(argv[1]);
     test_game_end_check(argv[1]);
