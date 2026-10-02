@@ -4,7 +4,7 @@ An Othello engine that learned the game from scratch through AlphaZero-style sel
 distilled what it learned into a tiny integer neural network fast enough to search with
 alpha-beta on a CPU.
 
-**[▶ Play it in your browser](https://haccerkat.github.io/Othello-Zero/)** · Ranked **35 / 600 (top 6%)** on the
+**[▶ Play it in your browser](https://haccerkat.github.io/Othello-Zero/)** · Ranked **44 / 644 (top 7%)** on the
 [CodinGame Othello leaderboard](https://www.codingame.com/multiplayer/bot-programming/othello-1/leaderboard) (as HaccerKat)
 
 ![The engine (white) playing a game in the browser demo](docs/demo.gif)
@@ -38,8 +38,11 @@ flowchart LR
    predict it from a 128-bit board encoding (own discs, opponent discs).
 3. **Quantization**. Weights are scaled and rounded to int16, so every layer runs in integer arithmetic.
    A [NumPy reference](tools/nnue_reference.py) reproduces the C++ evaluation to within 1e-7.
-4. **Search** ([engine](engine)). Iterative-deepening alpha-beta over a lazily built game tree, ordering
-   moves by the previous iteration's evaluations, within a fixed time budget per move.
+4. **Search** ([engine](engine)). Iterative-deepening alpha-beta from depth 1 over a lazily built game
+   tree, within a fixed time budget per move. Moves are ordered by the previous iteration's values, and
+   leaves at the last ply are evaluated only as alpha-beta needs them. The network's first layer sums
+   the weights of occupied squares only, since its inputs are binary. Tests check that the search
+   returns the exact minimax value and plays a move it proved best.
 
 ## Results
 
@@ -77,6 +80,10 @@ Total, policy and value loss on held-out self-play positions for each generation
 | July 2025 | 39 / 577 (top 7%) |
 | October 2025 | 37 / 591 (top 7%) |
 | January 2026 | 35 / 600 (top 6%) |
+| October 2026 | 44 / 644 (top 7%) |
+
+The field has grown stronger over 2026; before the latest round of engine optimizations the bot had
+slipped to 63rd.
 
 ## Building
 
