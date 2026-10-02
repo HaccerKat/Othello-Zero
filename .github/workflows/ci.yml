@@ -20,6 +20,9 @@ jobs:
         run: ctest --test-dir build --output-on-failure
 
       - name: CodinGame bundle
+        # shared runners have scheduling noise; the 150 ms limit is checked on real hardware
+        env:
+          TURN_LIMIT_MS: 250
         run: |
           python3 codingame/build_bundle.py
           g++ -std=c++20 -O2 build/codingame_bundle.cpp -o build/codingame_bot

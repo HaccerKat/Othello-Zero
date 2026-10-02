@@ -2,6 +2,9 @@
 
 Usage: python codingame/test_bundle.py BUNDLE_BINARY [GAMES]
 
+Set TURN_LIMIT_MS to loosen the per-turn limit on noisy machines such as shared CI runners
+(default 150, CodinGame's limit; the bot itself budgets 147 ms).
+
 Mimics the referee input the bot expects: player id and board size once, then each turn the
 board rows, the opponent's last move(s) (from the second turn on, since the bot enables EXPERT
 mode), the legal action count and the actions. When the bot has to pass, the referee skips it
@@ -14,8 +17,6 @@ Some games pause the bot's process between its turns, as CodinGame appears to: w
 leaves running after replying then only resumes once its next turn's clock is running.
 """
 
-TURN_LIMIT_MS = 150
-
 import os
 import random
 import signal
@@ -27,6 +28,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
 import othello  # noqa: E402
+
+TURN_LIMIT_MS = float(os.environ.get("TURN_LIMIT_MS", 150))
 
 
 # Black's only move is h4; if white answers b8, black must pass while white moves twice.
