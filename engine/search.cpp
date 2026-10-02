@@ -2,6 +2,10 @@
 #include <algorithm>
 #include <iostream>
 
+// First iterative deepening depth. Starting shallow means there is always a searched move to
+// play, and each iteration orders the moves for the next.
+constexpr int START_DEPTH = 1;
+
 void minimax(Board* position, int depth, float alpha, float beta, Clock::time_point start, double response_time) {
     std::chrono::duration<double> elapsed = Clock::now() - start;
     if (depth == 0 || position->find_if_game_ends() || elapsed.count() > response_time) {
@@ -49,7 +53,7 @@ void minimax(Board* position, int depth, float alpha, float beta, Clock::time_po
 std::pair<int, int> get_best_move(Board* position, double response_time, int max_depth, bool verbose) {
     auto start = Clock::now();
     position->find_next_boards();
-    int depth = 6;
+    int depth = START_DEPTH;
     float eval = position->DRAW;
     // a legal move (or the pass) to fall back on if there is no time for a single iteration
     std::pair<int, int> move = position->next_boards[0].second;
